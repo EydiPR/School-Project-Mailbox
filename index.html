@@ -424,12 +424,11 @@ footer.note{
 
   <div class="staff-gate" id="staff-gate">
     <h3>Ver mensajes del buzón</h3>
-    <div class="hint">Esto es solo para evitar clics accidentales — no es una contraseña segura ni un inicio de sesión real.</div>
+    <div class="hint">Solo la cuenta de Google autorizada puede entrar aquí.</div>
     <div class="row">
-      <input type="text" id="staff-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')checkPass()">
-      <button onclick="checkPass()">Entrar</button>
+      <button onclick="staffSignIn()" style="width:100%; background:var(--navy); color:var(--white); border:none; border-radius:var(--radius); padding:10px; font-size:0.9rem; cursor:pointer;">Iniciar sesión con Google</button>
     </div>
-    <div class="status-msg error" id="gate-error"></div>
+    <div class="status-msg error" id="gate-error" style="margin-top:10px;"></div>
   </div>
 
   <div class="staff-view" id="staff-view">
@@ -445,7 +444,7 @@ footer.note{
   </div>
 
   <footer class="note">
-    Los mensajes se guardan y son visibles para cualquiera con acceso de personal a esta página. La opción "con mi nombre" no verifica una cuenta real — es información que la persona escribe.
+    Los mensajes solo pueden verse iniciando sesión con la cuenta de Google autorizada. La opción "con mi nombre" no verifica una cuenta real — es información que la persona escribe.
   </footer>
 
 </div>
@@ -468,7 +467,6 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentTab = 'sugerencias';
-
 
 function toggleBox(cat){
   const box = document.getElementById('box-'+cat);
@@ -508,24 +506,14 @@ async function submitEntry(evt, cat){
   statusEl.textContent = 'Enviando...';
   statusEl.classList.remove('error');
 
-  const entry = {
-    id: Date.now() + '-' + Math.random().toString(36).slice(2,8),
-    fecha: new Date().toISOString(),
-    who,
-    mensaje: msg,
-    revisado: false
-  };
-
   try{
-    const key = 'buzon-' + cat;
-    let list = [];
-    try{
-      const existing = await window.storage.get(key, true);
-      if(existing && existing.value) list = JSON.parse(existing.value);
-    }catch(e){ /* no entries yet */ }
-    list.push(entry);
-    const result = await window.storage.set(key, JSON.stringify(list), true);
-    if(!result) throw new Error('save failed');
+    await db.collection('buzon').add({
+      categoria: cat,
+      who,
+      mensaje: msg,
+      fecha: firebase.firestore.FieldValue.serverTimestamp(),
+      revisado: false
+    });
 
     document.getElementById('form-'+cat).style.display = 'none';
     document.getElementById('confirm-'+cat).classList.add('show');
@@ -548,28 +536,39 @@ function resetBox(cat){
 
 function showGate(){
   document.getElementById('staff-gate').classList.add('show');
-  document.getElementById('staff-pass').focus();
 }
 
-function checkPass(){
-  const val = document.getElementById('staff-pass').value;
+async function staffSignIn(){
   const errEl = document.getElementById('gate-error');
-  if(val === STAFF_PASSWORD){
-    staffUnlocked = true;
+  errEl.textContent = '';
+  try{
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const result = await auth.signInWithPopup(provider);
+    if(result.user.email !== OWNER_EMAIL){
+      errEl.textContent = 'Esta cuenta no tiene acceso al buzón.';
+      await auth.signOut();
+      return;
+    }
     document.getElementById('staff-gate').classList.remove('show');
     document.getElementById('staff-view').classList.add('show');
-    errEl.textContent = '';
-    loadEntries();
-  } else {
-    errEl.textContent = 'Contraseña incorrecta.';
+    switchTab('sugerencias');
+  }catch(e){
+    errEl.textContent = 'No se pudo iniciar sesión. Intenta de nuevo.';
   }
 }
 
 function lockStaff(){
-  staffUnlocked = false;
+  auth.signOut();
   document.getElementById('staff-view').classList.remove('show');
-  document.getElementById('staff-pass').value = '';
 }
+
+auth.onAuthStateChanged(user => {
+  if(user && user.email === OWNER_EMAIL){
+    document.getElementById('staff-view').classList.add('show');
+    document.getElementById('staff-gate').classList.remove('show');
+    loadEntries();
+  }
+});
 
 function switchTab(cat){
   currentTab = cat;
@@ -583,22 +582,25 @@ async function loadEntries(){
   listEl.innerHTML = '<div class="empty-note">Cargando...</div>';
   let list = [];
   try{
-    const existing = await window.storage.get('buzon-'+currentTab, true);
-    if(existing && existing.value) list = JSON.parse(existing.value);
-  }catch(e){ list = []; }
+    const snap = await db.collection('buzon').where('categoria','==',currentTab).get();
+    list = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+  }catch(e){
+    listEl.innerHTML = '<div class="empty-note">No se pudieron cargar los mensajes.</div>';
+    return;
+  }
 
   if(list.length === 0){
     listEl.innerHTML = '<div class="empty-note">Todavía no hay mensajes aquí.</div>';
     return;
   }
 
-  list.sort((a,b)=> new Date(b.fecha) - new Date(a.fecha));
+  list.sort((a,b)=> (b.fecha?.toMillis?.() || 0) - (a.fecha?.toMillis?.() || 0));
 
   listEl.innerHTML = list.map(entry => {
     const who = entry.who.tipo === 'cuenta'
       ? `${escapeHtml(entry.who.nombre)} · ${escapeHtml(entry.who.correo)}`
       : `Anónimo · ${escapeHtml(entry.who.apodo)}`;
-    const fecha = new Date(entry.fecha).toLocaleString('es-PR', {dateStyle:'medium', timeStyle:'short'});
+    const fecha = entry.fecha?.toDate ? entry.fecha.toDate().toLocaleString('es-PR', {dateStyle:'medium', timeStyle:'short'}) : 'Justo ahora';
     return `
       <div class="entry ${entry.revisado ? 'reviewed' : ''}">
         <div class="meta">
@@ -607,7 +609,7 @@ async function loadEntries(){
         </div>
         <p class="msg">${escapeHtml(entry.mensaje)}</p>
         <label>
-          <input type="checkbox" ${entry.revisado ? 'checked' : ''} onchange="toggleReviewed('${currentTab}','${entry.id}', this.checked)">
+          <input type="checkbox" ${entry.revisado ? 'checked' : ''} onchange="toggleReviewed('${entry.id}', this.checked)">
           Revisado
         </label>
       </div>
@@ -615,13 +617,9 @@ async function loadEntries(){
   }).join('');
 }
 
-async function toggleReviewed(cat, id, checked){
+async function toggleReviewed(id, checked){
   try{
-    const key = 'buzon-'+cat;
-    const existing = await window.storage.get(key, true);
-    let list = existing && existing.value ? JSON.parse(existing.value) : [];
-    list = list.map(e => e.id === id ? {...e, revisado: checked} : e);
-    await window.storage.set(key, JSON.stringify(list), true);
+    await db.collection('buzon').doc(id).update({revisado: checked});
   }catch(e){}
 }
 
