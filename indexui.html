@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buzón Digital</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg: #EFEAE0;
+  --bg-panel: #E4DECF;
+  --ink: #20241F;
+  --ink-soft: #4B5148;
+  --navy: #1B3A4B;
+  --sage: #4C7A6B;
+  --sage-dark: #375A4F;
+  --ochre: #B5772E;
+  --ochre-dark: #8E5D22;
+  --line: #C9C1AC;
+  --white: #FBFAF6;
+  --radius: 6px;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Public Sans', sans-serif;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{
+  font-family:'Fraunces', serif;
+  font-weight:500;
+  margin:0;
+  color:var(--navy);
+}
+button{font-family:inherit;}
+a{color:inherit;}
+
+.wrap{max-width:920px;margin:0 auto;padding:0 24px 80px;}
+
+/* ---------- Header ---------- */
+header.top{
+  padding:56px 24px 40px;
+  text-align:center;
+  border-bottom:1px solid var(--line);
+  margin-bottom:48px;
+}
+header.top h1{
+  font-size:clamp(2.1rem, 5vw, 3rem);
+  letter-spacing:-0.01em;
+}
+header.top .school-name{
+  font-size:1.05rem;
+  color:var(--ink-soft);
+  margin-top:8px;
+}
+header.top .school-name[contenteditable]{
+  cursor:text;
+  border-bottom:1px dashed var(--line);
+  display:inline-block;
+  padding:0 2px;
+}
+header.top p.lead{
+  max-width:520px;
+  margin:20px auto 0;
+  color:var(--ink-soft);
+  font-size:1rem;
+}
+
+/* ---------- Mailbox doors ---------- */
+.mailboxes{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:28px;
+  margin-bottom:56px;
+}
+@media (max-width:640px){
+  .mailboxes{grid-template-columns:1fr;}
+}
+
+.mailbox{
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+.mailbox .flap{
+  width:100%;
+  text-align:left;
+  border:none;
+  cursor:pointer;
+  padding:26px 24px;
+  background:var(--white);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  transform-origin:top;
+  transition:background 0.15s ease;
+}
+.mailbox .flap:hover{background:var(--bg-panel);}
+.mailbox .flap:focus-visible{outline:2px solid var(--navy); outline-offset:-2px;}
+
+.mailbox.sugerencias .flap .tag{color:var(--sage-dark);}
+.mailbox.problemas .flap .tag{color:var(--ochre-dark);}
+
+.flap .tag{
+  font-size:0.8rem;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+}
+.flap h2{font-size:1.5rem;}
+.flap .desc{color:var(--ink-soft); font-size:0.92rem; margin-top:2px;}
+.flap .chevron{
+  align-self:flex-end;
+  margin-top:-28px;
+  font-size:1.2rem;
+  color:var(--ink-soft);
+  transition:transform 0.2s ease;
+}
+.mailbox.open .flap .chevron{transform:rotate(180deg);}
+
+.mailbox .panel{
+  max-height:0;
+  overflow:hidden;
+  transition:max-height 0.28s ease;
+  border-top:1px solid transparent;
+}
+.mailbox.open .panel{
+  max-height:900px;
+  border-top:1px solid var(--line);
+}
+.panel-inner{padding:22px 24px 26px;}
+
+.field{margin-bottom:16px;}
+.field label{
+  display:block;
+  font-size:0.85rem;
+  font-weight:600;
+  margin-bottom:6px;
+  color:var(--ink);
+}
+.field .hint{font-size:0.78rem; color:var(--ink-soft); margin-top:4px;}
+
+.identity-toggle{
+  display:flex;
+  gap:8px;
+  margin-bottom:16px;
+}
+.identity-toggle label{
+  flex:1;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:10px 12px;
+  font-size:0.85rem;
+  text-align:center;
+  cursor:pointer;
+  user-select:none;
+}
+.identity-toggle input{position:absolute; opacity:0; pointer-events:none;}
+.identity-toggle input:checked + span{font-weight:700;}
+.mailbox.sugerencias .identity-toggle label:has(input:checked){
+  border-color:var(--sage); background:#EEF3F0;
+}
+.mailbox.problemas .identity-toggle label:has(input:checked){
+  border-color:var(--ochre); background:#F5EEE3;
+}
+
+input[type=text], input[type=email], textarea{
+  width:100%;
+  font-family:inherit;
+  font-size:0.95rem;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  background:var(--white);
+  color:var(--ink);
+}
+textarea{resize:vertical; min-height:100px;}
+input:focus, textarea:focus{outline:2px solid var(--navy); outline-offset:0;}
+
+.named-fields{display:none; gap:12px;}
+.named-fields.show{display:grid; grid-template-columns:1fr 1fr;}
+@media (max-width:480px){.named-fields.show{grid-template-columns:1fr;}}
+
+.submit-row{display:flex; align-items:center; gap:14px; margin-top:18px;}
+.btn{
+  border:none;
+  border-radius:var(--radius);
+  padding:11px 20px;
+  font-size:0.9rem;
+  font-weight:600;
+  cursor:pointer;
+  color:var(--white);
+}
+.mailbox.sugerencias .btn{background:var(--sage);}
+.mailbox.sugerencias .btn:hover{background:var(--sage-dark);}
+.mailbox.problemas .btn{background:var(--ochre);}
+.mailbox.problemas .btn:hover{background:var(--ochre-dark);}
+.btn:disabled{opacity:0.6; cursor:default;}
+
+.status-msg{font-size:0.85rem; color:var(--ink-soft);}
+.status-msg.error{color:#A23B2E;}
+
+.confirm{
+  padding:22px 24px 26px;
+  display:none;
+}
+.confirm.show{display:block;}
+.confirm .check{
+  width:34px; height:34px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--white); font-size:1rem; margin-bottom:12px;
+}
+.mailbox.sugerencias .confirm .check{background:var(--sage);}
+.mailbox.problemas .confirm .check{background:var(--ochre);}
+.confirm p{margin:0 0 14px; color:var(--ink-soft); font-size:0.92rem;}
+.confirm button{
+  background:none; border:1px solid var(--line); border-radius:var(--radius);
+  padding:8px 14px; font-size:0.85rem; cursor:pointer; color:var(--ink);
+}
+
+/* ---------- Staff section ---------- */
+.staff-toggle{
+  text-align:center;
+  margin-bottom:24px;
+}
+.staff-toggle button{
+  background:none;
+  border:none;
+  color:var(--ink-soft);
+  font-size:0.85rem;
+  text-decoration:underline;
+  cursor:pointer;
+  padding:6px;
+}
+
+.staff-gate{
+  max-width:340px;
+  margin:0 auto 40px;
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:22px 24px;
+  display:none;
+}
+.staff-gate.show{display:block;}
+.staff-gate h3{font-size:1.05rem; margin-bottom:4px;}
+.staff-gate .hint{font-size:0.78rem; color:var(--ink-soft); margin-bottom:14px;}
+.staff-gate .row{display:flex; gap:8px;}
+.staff-gate input{flex:1;}
+.staff-gate .row button{
+  background:var(--navy); color:var(--white); border:none;
+  border-radius:var(--radius); padding:0 16px; font-size:0.85rem; cursor:pointer;
+}
+
+.staff-view{display:none;}
+.staff-view.show{display:block;}
+.staff-view .staff-head{
+  display:flex; justify-content:space-between; align-items:baseline;
+  margin-bottom:18px; flex-wrap:wrap; gap:8px;
+}
+.staff-view h2{font-size:1.4rem;}
+.staff-view .lock-btn{
+  background:none; border:1px solid var(--line); border-radius:var(--radius);
+  padding:6px 12px; font-size:0.8rem; cursor:pointer; color:var(--ink-soft);
+}
+
+.staff-tabs{display:flex; gap:8px; margin-bottom:18px;}
+.staff-tabs button{
+  flex:1; border:1px solid var(--line); background:var(--white);
+  border-radius:var(--radius); padding:9px; font-size:0.85rem; cursor:pointer;
+  color:var(--ink-soft);
+}
+.staff-tabs button.active{
+  color:var(--white); border-color:transparent;
+}
+.staff-tabs button.active.sug{background:var(--sage);}
+.staff-tabs button.active.prob{background:var(--ochre);}
+
+.entry{
+  background:var(--white); border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px 18px; margin-bottom:12px;
+}
+.entry.reviewed{opacity:0.55;}
+.entry .meta{
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-size:0.78rem; color:var(--ink-soft); margin-bottom:8px; gap:10px; flex-wrap:wrap;
+}
+.entry .who{font-weight:600; color:var(--ink);}
+.entry p.msg{margin:0 0 10px; font-size:0.92rem; white-space:pre-wrap;}
+.entry label{font-size:0.78rem; color:var(--ink-soft); display:flex; align-items:center; gap:6px; cursor:pointer;}
+.entry-actions{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+.delete-btn{
+  background:none; border:1px solid var(--line); border-radius:var(--radius);
+  padding:5px 12px; font-size:0.78rem; cursor:pointer; color:#A23B2E;
+}
+.delete-btn:hover{background:#F5E8E5; border-color:#A23B2E;}
+.empty-note{color:var(--ink-soft); font-size:0.88rem; text-align:center; padding:20px 0;}
+
+footer.note{
+  text-align:center; font-size:0.75rem; color:var(--ink-soft);
+  border-top:1px solid var(--line); padding-top:20px; margin-top:12px;
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Buzón Digital</h1>
+  <div class="school-name">Vocacional Ana Delia Flores Santana</div>
+  <p class="lead">Comparte tus ideas o reporta un problema. Puedes escribir con un apodo o con tu nombre y correo — tú decides.</p>
+</header>
+
+<div class="wrap">
+
+  <div class="mailboxes">
+
+    <!-- SUGERENCIAS -->
+    <div class="mailbox sugerencias" id="box-sugerencias">
+      <button class="flap" aria-expanded="false" onclick="toggleBox('sugerencias')">
+        <span class="tag">Buzón</span>
+        <h2>Sugerencias</h2>
+        <span class="desc">Ideas para mejorar la escuela.</span>
+        <span class="chevron">⌄</span>
+      </button>
+      <div class="panel">
+        <div class="panel-inner" id="form-sugerencias">
+          <form onsubmit="return submitEntry(event,'sugerencias')">
+            <div class="identity-toggle" role="radiogroup">
+              <label><input type="radio" name="identidad-sugerencias" value="anonimo" checked onchange="toggleIdentity('sugerencias')"><span>Anónimo (apodo)</span></label>
+              <label><input type="radio" name="identidad-sugerencias" value="cuenta" onchange="toggleIdentity('sugerencias')"><span>Con mi nombre</span></label>
+            </div>
+
+            <div class="field" id="nick-field-sugerencias">
+              <label for="nick-sugerencias">Apodo</label>
+              <input type="text" id="nick-sugerencias" placeholder="Ej. Águila23" maxlength="40">
+            </div>
+
+            <div class="field named-fields" id="named-fields-sugerencias">
+              <div>
+                <label for="name-sugerencias">Nombre</label>
+                <input type="text" id="name-sugerencias" maxlength="60">
+              </div>
+              <div>
+                <label for="email-sugerencias">Correo</label>
+                <input type="email" id="email-sugerencias" placeholder="nombre@escuela.pr.gov">
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="msg-sugerencias">Tu sugerencia</label>
+              <textarea id="msg-sugerencias" required placeholder="¿Qué te gustaría ver mejorado?"></textarea>
+            </div>
+
+            <div class="submit-row">
+              <button type="submit" class="btn">Enviar sugerencia</button>
+              <span class="status-msg" id="status-sugerencias"></span>
+            </div>
+          </form>
+        </div>
+        <div class="confirm" id="confirm-sugerencias">
+          <div class="check">✓</div>
+          <p>Gracias — tu sugerencia llegó al buzón.</p>
+          <button onclick="resetBox('sugerencias')">Enviar otra</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROBLEMAS -->
+    <div class="mailbox problemas" id="box-problemas">
+      <button class="flap" aria-expanded="false" onclick="toggleBox('problemas')">
+        <span class="tag">Buzón</span>
+        <h2>Problemas</h2>
+        <span class="desc">Algo no está funcionando bien.</span>
+        <span class="chevron">⌄</span>
+      </button>
+      <div class="panel">
+        <div class="panel-inner" id="form-problemas">
+          <form onsubmit="return submitEntry(event,'problemas')">
+            <div class="identity-toggle" role="radiogroup">
+              <label><input type="radio" name="identidad-problemas" value="anonimo" checked onchange="toggleIdentity('problemas')"><span>Anónimo (apodo)</span></label>
+              <label><input type="radio" name="identidad-problemas" value="cuenta" onchange="toggleIdentity('problemas')"><span>Con mi nombre</span></label>
+            </div>
+
+            <div class="field" id="nick-field-problemas">
+              <label for="nick-problemas">Apodo</label>
+              <input type="text" id="nick-problemas" placeholder="Ej. Águila23" maxlength="40">
+            </div>
+
+            <div class="field named-fields" id="named-fields-problemas">
+              <div>
+                <label for="name-problemas">Nombre</label>
+                <input type="text" id="name-problemas" maxlength="60">
+              </div>
+              <div>
+                <label for="email-problemas">Correo</label>
+                <input type="email" id="email-problemas" placeholder="nombre@escuela.pr.gov">
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="msg-problemas">Describe el problema</label>
+              <textarea id="msg-problemas" required placeholder="¿Qué está pasando y dónde?"></textarea>
+            </div>
+
+            <div class="submit-row">
+              <button type="submit" class="btn">Enviar problema</button>
+              <span class="status-msg" id="status-problemas"></span>
+            </div>
+          </form>
+        </div>
+        <div class="confirm" id="confirm-problemas">
+          <div class="check">✓</div>
+          <p>Gracias — tu reporte llegó al buzón.</p>
+          <button onclick="resetBox('problemas')">Enviar otro</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="staff-toggle">
+    <button onclick="showGate()">Acceso del personal escolar</button>
+  </div>
+
+  <div class="staff-gate" id="staff-gate">
+    <h3>Ver mensajes del buzón</h3>
+    <div class="hint">Solo la cuenta de Google autorizada puede entrar aquí.</div>
+    <div class="row">
+      <button onclick="staffSignIn()" style="width:100%; background:var(--navy); color:var(--white); border:none; border-radius:var(--radius); padding:10px; font-size:0.9rem; cursor:pointer;">Iniciar sesión con Google</button>
+    </div>
+    <div class="status-msg error" id="gate-error" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="staff-view" id="staff-view">
+    <div class="staff-head">
+      <h2>Mensajes recibidos</h2>
+      <button class="lock-btn" onclick="lockStaff()">Cerrar sesión</button>
+    </div>
+    <div class="staff-tabs">
+      <button class="active sug" id="tab-sugerencias" onclick="switchTab('sugerencias')">Sugerencias</button>
+      <button class="prob" id="tab-problemas" onclick="switchTab('problemas')">Problemas</button>
+    </div>
+    <div id="entries-list"></div>
+  </div>
+
+  <footer class="note">
+    Los mensajes solo pueden verse iniciando sesión con la cuenta de Google autorizada. La opción "con mi nombre" no verifica una cuenta real — es información que la persona escribe.
+  </footer>
+
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCzYnrbpG8twvblwEImX9Evta4vrwAttUU",
+  authDomain: "tesr-a01bb.firebaseapp.com",
+  projectId: "tesr-a01bb",
+  storageBucket: "tesr-a01bb.firebasestorage.app",
+  messagingSenderId: "724336866992",
+  appId: "1:724336866992:web:f9a57d533812ee3f89ad75"
+};
+const OWNER_EMAILS = ["nonitofalu@gmail.com"]; // agrega más correos separados por coma
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentTab = 'sugerencias';
+
+function toggleBox(cat){
+  const box = document.getElementById('box-'+cat);
+  const isOpen = box.classList.contains('open');
+  box.classList.toggle('open', !isOpen);
+  box.querySelector('.flap').setAttribute('aria-expanded', String(!isOpen));
+}
+
+function toggleIdentity(cat){
+  const cuenta = document.querySelector(`input[name="identidad-${cat}"]:checked`).value === 'cuenta';
+  document.getElementById('nick-field-'+cat).style.display = cuenta ? 'none' : 'block';
+  document.getElementById('named-fields-'+cat).classList.toggle('show', cuenta);
+}
+
+async function submitEntry(evt, cat){
+  evt.preventDefault();
+  const cuenta = document.querySelector(`input[name="identidad-${cat}"]:checked`).value === 'cuenta';
+  const statusEl = document.getElementById('status-'+cat);
+  const msg = document.getElementById('msg-'+cat).value.trim();
+
+  let who = {};
+  if(cuenta){
+    const nombre = document.getElementById('name-'+cat).value.trim();
+    const correo = document.getElementById('email-'+cat).value.trim();
+    if(!nombre || !correo){
+      statusEl.textContent = 'Escribe tu nombre y correo.';
+      statusEl.classList.add('error');
+      return false;
+    }
+    who = {tipo:'cuenta', nombre, correo};
+  } else {
+    const apodo = document.getElementById('nick-'+cat).value.trim() || 'Anónimo';
+    who = {tipo:'anonimo', apodo};
+  }
+  if(!msg){ return false; }
+
+  statusEl.textContent = 'Enviando...';
+  statusEl.classList.remove('error');
+
+  try{
+    await db.collection('buzon').add({
+      categoria: cat,
+      who,
+      mensaje: msg,
+      fecha: firebase.firestore.FieldValue.serverTimestamp(),
+      revisado: false
+    });
+
+    document.getElementById('form-'+cat).style.display = 'none';
+    document.getElementById('confirm-'+cat).classList.add('show');
+    statusEl.textContent = '';
+  }catch(e){
+    statusEl.textContent = 'No se pudo enviar. Intenta de nuevo.';
+    statusEl.classList.add('error');
+  }
+  return false;
+}
+
+function resetBox(cat){
+  document.getElementById('form-'+cat).style.display = 'block';
+  document.getElementById('confirm-'+cat).classList.remove('show');
+  document.getElementById('msg-'+cat).value = '';
+  if(document.getElementById('nick-'+cat)) document.getElementById('nick-'+cat).value = '';
+  if(document.getElementById('name-'+cat)) document.getElementById('name-'+cat).value = '';
+  if(document.getElementById('email-'+cat)) document.getElementById('email-'+cat).value = '';
+}
+
+function showGate(){
+  document.getElementById('staff-gate').classList.add('show');
+}
+
+async function staffSignIn(){
+  const errEl = document.getElementById('gate-error');
+  errEl.textContent = '';
+  try{
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const result = await auth.signInWithPopup(provider);
+    if(!OWNER_EMAILS.includes(result.user.email)){
+      errEl.textContent = 'Esta cuenta no tiene acceso al buzón.';
+      await auth.signOut();
+      return;
+    }
+    document.getElementById('staff-gate').classList.remove('show');
+    document.getElementById('staff-view').classList.add('show');
+    switchTab('sugerencias');
+  }catch(e){
+    errEl.textContent = 'No se pudo iniciar sesión. Intenta de nuevo.';
+  }
+}
+
+function lockStaff(){
+  auth.signOut();
+  document.getElementById('staff-view').classList.remove('show');
+}
+
+auth.onAuthStateChanged(user => {
+  if(user && OWNER_EMAILS.includes(user.email)){
+    document.getElementById('staff-view').classList.add('show');
+    document.getElementById('staff-gate').classList.remove('show');
+    loadEntries();
+  }
+});
+
+function switchTab(cat){
+  currentTab = cat;
+  document.getElementById('tab-sugerencias').classList.toggle('active', cat==='sugerencias');
+  document.getElementById('tab-problemas').classList.toggle('active', cat==='problemas');
+  loadEntries();
+}
+
+async function loadEntries(){
+  const listEl = document.getElementById('entries-list');
+  listEl.innerHTML = '<div class="empty-note">Cargando...</div>';
+  let list = [];
+  try{
+    const snap = await db.collection('buzon').where('categoria','==',currentTab).get();
+    list = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+  }catch(e){
+    listEl.innerHTML = '<div class="empty-note">No se pudieron cargar los mensajes.</div>';
+    return;
+  }
+
+  if(list.length === 0){
+    listEl.innerHTML = '<div class="empty-note">Todavía no hay mensajes aquí.</div>';
+    return;
+  }
+
+  list.sort((a,b)=> (b.fecha?.toMillis?.() || 0) - (a.fecha?.toMillis?.() || 0));
+
+  listEl.innerHTML = list.map(entry => {
+    const who = entry.who.tipo === 'cuenta'
+      ? `${escapeHtml(entry.who.nombre)} · ${escapeHtml(entry.who.correo)}`
+      : `Anónimo · ${escapeHtml(entry.who.apodo)}`;
+    const fecha = entry.fecha?.toDate ? entry.fecha.toDate().toLocaleString('es-PR', {dateStyle:'medium', timeStyle:'short'}) : 'Justo ahora';
+    return `
+      <div class="entry ${entry.revisado ? 'reviewed' : ''}" id="entry-${entry.id}">
+        <div class="meta">
+          <span class="who">${who}</span>
+          <span>${fecha}</span>
+        </div>
+        <p class="msg">${escapeHtml(entry.mensaje)}</p>
+        <div class="entry-actions">
+          <label>
+            <input type="checkbox" ${entry.revisado ? 'checked' : ''} onchange="toggleReviewed('${entry.id}', this.checked)">
+            Revisado
+          </label>
+          <button type="button" class="delete-btn" onclick="deleteEntry('${entry.id}')">Eliminar</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function toggleReviewed(id, checked){
+  try{
+    await db.collection('buzon').doc(id).update({revisado: checked});
+  }catch(e){}
+}
+
+async function deleteEntry(id){
+  const sure = confirm('¿Eliminar este mensaje? Esta acción no se puede deshacer.');
+  if(!sure) return;
+  try{
+    await db.collection('buzon').doc(id).delete();
+    const el = document.getElementById('entry-'+id);
+    if(el) el.remove();
+  }catch(e){
+    alert('No se pudo eliminar. Intenta de nuevo.');
+  }
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+</script>
+
+</body>
+</html>
